@@ -2,90 +2,103 @@ import './reset.css';
 import './style.css';
 
 const BOX_DATA = [
-  [1, 1, 1, 1],
+  [1, 1, 1],
   [1, 0, 0],
   [1, 1, 1],
 ];
 
+const DELAY_TIME = 1000;
+
 function initApp() {
-  //* store the box item
-  const boxItemMap = new Map<number, HTMLButtonElement>();
-  //* track the number of selected box
   let counter = 0;
-  //* track the number of valid box
   let validBoxAmount = 0;
+  let isReady = true;
+  let intervalCounter = 0;
 
-  let shutdown = false;
+  // const boxItemMap = new Map<number, HTMLButtonElement>();
+  const boxItemArray: HTMLButtonElement[] = [];
 
-  const boxList = document.createElement('ul');
-  boxList.classList.add('box-list');
+  const boxGrid = document.createElement('ul');
+  boxGrid.classList.add('box-grid');
 
   BOX_DATA.forEach((row) => {
     const rowElement = document.createElement('ul');
-    rowElement.classList.add('row');
+    rowElement.classList.add('box-row');
 
-    boxList.appendChild(rowElement);
+    boxGrid.appendChild(rowElement);
 
     row.forEach((cell) => {
       const cellElement = document.createElement('li');
-      cellElement.classList.add('cell');
+      cellElement.classList.add('box-cell');
 
-      const boxItem = document.createElement('button');
-      boxItem.classList.add('box');
+      const boxElement = document.createElement('button');
+      boxElement.classList.add('box-item');
 
-      cellElement.appendChild(boxItem);
+      cellElement.appendChild(boxElement);
       rowElement.appendChild(cellElement);
 
       if (cell === 0) {
-        boxItem.setAttribute('data-empty', 'true');
+        boxElement.setAttribute('data-empty', 'true');
         return;
       }
 
       validBoxAmount++;
 
-      boxItem.addEventListener('click', () => {
-        if (shutdown || boxItem.dataset.selected === 'true') return;
+      boxElement.addEventListener('click', () => {
+        //* Prevent user from clicking the box while the animation is running
+        //* and clicking the box that already selected
+        if (!isReady || boxElement.dataset.selected === 'true') return;
 
-        boxItem.setAttribute('data-selected', 'true');
-        boxItemMap.set(counter, boxItem);
+        boxElement.setAttribute('data-selected', 'true');
+        boxElement.textContent = `${counter + 1}`;
+
+        // boxItemMap.set(counter, boxElement);
+        boxItemArray.push(boxElement);
+
         counter += 1;
 
-        console.log({ boxItemMap });
-
+        //* If all the box is selected, run the animation
         if (counter === validBoxAmount) {
-          let intervalCounter = 0;
+          isReady = false;
 
-          shutdown = true;
+          const resetBox = () => {
+            // const boxItem = boxItemMap.get(intervalCounter);
 
-          const boxItemMapKeys = () => {
-            boxItemMap.get(intervalCounter)?.removeAttribute('data-selected');
+            const boxItem = boxItemArray[intervalCounter];
+
+            // if (!boxItem) return;
+
+            boxItem.removeAttribute('data-selected');
+            boxItem.textContent = '';
           };
 
-          boxItemMapKeys();
+          //* To make the animation run before the interval
+          resetBox();
 
-          const interval = setInterval(() => {
+          const intervalID = setInterval(() => {
             intervalCounter++;
-            boxItemMapKeys();
 
+            resetBox();
+
+            //* Handle when the animation is done
             if (intervalCounter === validBoxAmount - 1) {
-              clearInterval(interval);
-              boxItemMap.clear();
+              clearInterval(intervalID);
+              // boxItemMap.clear();
+              boxItemArray.length = 0;
               counter = 0;
-              shutdown = false;
+              isReady = true;
             }
-          }, 1000);
-          // boxItemMap.forEach((item, index) => {
-          //   setTimeout(() => {
-          //     item.removeAttribute('data-selected');
-          //   }, 1000 * index);
-          // });
+          }, DELAY_TIME);
         }
       });
     });
   });
 
-  const app = document.getElementById('app');
-  app?.appendChild(boxList);
+  const appElement = document.getElementById('app');
+
+  if (appElement) {
+    appElement.appendChild(boxGrid);
+  }
 }
 
 initApp();
